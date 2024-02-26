@@ -1,0 +1,83 @@
+#Find sites without fire for species of interest
+install.packages("tidyverse")
+install.packages("terra")
+install.packages("mapview")
+install.packages("sf")
+install.packages("raster")
+install.packages("pacman")
+
+
+pacman::p_load(sf, tidyverse, terra, raster, mapview)
+
+# Load the data
+
+pa <- read.csv("occ_sub.csv")
+
+# Create a simple feature object
+
+pa_sf <- st_as_sf(pa, coords = c("coords.x1", "coords.x2"), crs = 4326)
+
+pa_sf
+plot(pa_sf$geometry)
+
+aulax_sf <- pa_sf[pa_sf$Genus_code == "AU",]
+plot(aulax_sf$geometry)
+
+#Load fire shape file
+
+fire <- st_read("All_Fires_20_21_gw/All_Fires_20_21_gw.shp")
+
+#Filter out older dates, I want between 2010 - 2021
+
+fire_2010_2021 <- filter(fire, between(YEAR, 2010, 2021))
+
+#Plot fire_2010_2021
+
+ggplot() +
+  geom_sf(data = fire_2010_2021) +
+  ggtitle("Fires between 2010 and 2021")
+
+#Extract the fire number for each point (Specifically Aulax)
+
+class(aulax_sf)
+class(fire_2010_2021)
+
+####Complete til here, below needs a fiddle
+
+
+# Plot aulax_sf
+
+aulax_fire <- ggplot() +
+  geom_sf(data = aulax_sf_validated, fill = "lightgray") +
+  ggtitle("aulax_sf")
+
+# Add fire_2010_2021 as points on the map
+
+geom_sf(data = fire_2010_2021_validated, color = "red", size = 2) +
+  ggtitle("Fires between 2010 and 2021")
+
+# Add fire_2010_2021 as points on the map
+aulax_fire <- map +
+  geom_sf(data = fire_2010_2021_validated, color = "red", size = 2) +
+  ggtitle("Fires between 2010 and 2021")
+
+
+
+
+aulax_fire <- st_join(aulax_sf, fire_2010_2021, by = "Genus_code")
+
+names(aulax_sf)
+
+plot(aulax_sf[aulax_sf$fire_num == 0,]$geometry)
+
+Provinces_sf <- st_read("/Users/michaelcramer/Library/CloudStorage/Dropbox/Dropbox_GIS_resources/Protea_Atlas/Provinces/Provinces.shp")
+
+
+#Plot the aulax_sf points coloured by species using ggplot
+ggplot() +
+  geom_sf(data = aulax_sf[aulax_sf$fire_num == 0,], aes(colour = Genus_species)) +
+  geom_sf(data = Provinces_sf[Provinces_sf$PROVINCE == "WESTERN CAPE", ], fill = NA, colour = "black") +
+  scale_colour_brewer(palette = "Set1") +
+  theme_minimal()
+
+mapview(aulax_sf[aulax_sf$fire_num == 0,], zcol="Genus_species”)
